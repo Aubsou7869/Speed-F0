@@ -1,6 +1,6 @@
 /*
- * Name: Aubrey
- * Date: April 26,2026
+ * Name: Aubrey Soule
+ * Date: May 8,2026
  * Assignment: Course Project
  * Description: Main Application
  */
@@ -21,8 +21,9 @@ public class App {
             System.out.println("\nYour Sport Motorcycle Info System\n");
             System.out.println("1. Add Motorcycle");
             System.out.println("2. View Motorcycles");
-            System.out.println("3. Delete Motorcycle");
-            System.out.println("4. Exit");
+            System.out.println("3. Update Motorcycle");
+            System.out.println("4. Delete Motorcycle");
+            System.out.println("5. Exit");
             System.out.print("Enter choice: ");
 
             choice = scanner.nextInt();
@@ -69,21 +70,65 @@ public class App {
                     break;
 
                 case 3:
-                    System.out.print("Enter index to delete: ");
-                    int index = scanner.nextInt();
-                    db.deleteMotorcycle(index);
+
+                    System.out.print("Enter Motorcycle ID to update: ");
+                    int updateId = scanner.nextInt();
+                    scanner.nextLine();
+
+                    System.out.print("New Brand: ");
+                    String newBrand = scanner.nextLine();
+
+                    System.out.print("New Model: ");
+                    String newModel = scanner.nextLine();
+
+                    System.out.print("New Engine Size: ");
+                    int newEngineSize = scanner.nextInt();
+
+                    System.out.print("New Top Speed: ");
+                    int newTopSpeed = scanner.nextInt();
+
+                    System.out.print("New Cylinder Count: ");
+                    int newCylinders = scanner.nextInt();
+                    scanner.nextLine();
+
+                    System.out.print("New Manufacturer: ");
+                    String newManufacturer = scanner.nextLine();
+
+                    System.out.print("New Type: ");
+                    String newType = scanner.nextLine();
+
+                    Engine updatedEngine = new Engine(newEngineSize, newCylinders);
+
+                    SportMotorcycle updatedMoto = new SportMotorcycle(
+                            newBrand,
+                            newModel,
+                            newEngineSize,
+                            newTopSpeed,
+                            newManufacturer,
+                            newType,
+                            updatedEngine
+                    );
+
+                    db.updateMotorcycle(updateId, updatedMoto);
+
+                    break;
+
+                case 4:
+                    System.out.print("Enter id to delete: ");
+                    int id = scanner.nextInt();
+                    db.deleteMotorcycle(id);
                     break;
             }
 
-        } while (choice != 4);
+        } while (choice != 5);
 
         scanner.close();
     }
 }
 
 /*
- * Name: Aubrey
- * Date: April 26,2026
+ * Name: Aubrey Soule
+ * Date: May 8,2026
  * Assignment: Course Project
  * Description: Interface
  */
@@ -102,8 +147,8 @@ public interface DatabaseOperations {
 }
 
 /*
- * Name: Aubrey
- * Date: April 26,2026
+ * Name: Aubrey Soule
+ * Date: May 8,2026
  * Assignment: Course Project
  * Description: Engine info
  */
@@ -133,8 +178,8 @@ public class Engine {
 }
 
 /*
- * Name: Aubrey
- * Date: April 26,2026
+ * Name: Aubrey Soule
+ * Date: May 8,2026
  * Assignment: Course Project
  * Description: Abstract base class for all motorcycles
  */
@@ -172,47 +217,196 @@ public abstract class Motorcycle {
 }
 
 /*
- * Name: Aubrey
- * Date: April 26,2026
+ * Name: Aubrey Soule
+ * Date: May 8, 2026
  * Assignment: Course Project
- * Description: Temporary Database
+ * Description:
+ * This class manages the SQLite database for the
+ * Sport Motorcycle Management System. It performs
+ * CRUD operations using JDBC.
  */
 
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MotorcycleDB implements DatabaseOperations {
 
-    private List<SportMotorcycle> motorcycleList = new ArrayList<>();
+    private Connection conn;
 
-    @Override
-    public void createMotorcycle(SportMotorcycle moto) {
-        motorcycleList.add(moto);
-        System.out.println("Motorcycle added successfully.");
+    public MotorcycleDB() {
+
+        try {
+
+            conn = DriverManager.getConnection(
+                    "jdbc:sqlite:motorcycles.db");
+
+            createTable();
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
     }
 
-    @Override
-    public List<SportMotorcycle> getMotorcycles() {
-        return motorcycleList;
-    }
+    private void createTable() {
 
-    @Override
-    public void updateMotorcycle(int index, SportMotorcycle moto) {
-        if (index >= 0 && index < motorcycleList.size()) {
-            motorcycleList.set(index, moto);
-            System.out.println("Motorcycle updated.");
-        } else {
-            System.out.println("Invalid index.");
+        String sql =
+                "CREATE TABLE IF NOT EXISTS motorcycles (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "brand TEXT," +
+                "model TEXT," +
+                "engine_size INTEGER," +
+                "top_speed INTEGER," +
+                "manufacturer TEXT," +
+                "type TEXT," +
+                "cylinder_count INTEGER" +
+                ");";
+
+        try (Statement stmt = conn.createStatement()) {
+
+            stmt.execute(sql);
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
         }
     }
 
     @Override
-    public void deleteMotorcycle(int index) {
-        if (index >= 0 && index < motorcycleList.size()) {
-            motorcycleList.remove(index);
-            System.out.println("Motorcycle deleted.");
-        } else {
-            System.out.println("Invalid index.");
+    public void createMotorcycle(SportMotorcycle moto) {
+
+        String sql =
+                "INSERT INTO motorcycles " +
+                "(brand, model, engine_size, top_speed, " +
+                "manufacturer, type, cylinder_count) " +
+                "VALUES(?,?,?,?,?,?,?)";
+
+        try (PreparedStatement pstmt =
+                     conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, moto.getBrand());
+            pstmt.setString(2, moto.getModel());
+            pstmt.setInt(3, moto.getEngine().getEngineSize());
+            pstmt.setInt(4, moto.getTopSpeed());
+            pstmt.setString(5, moto.getManufacturer());
+            pstmt.setString(6, moto.getType());
+            pstmt.setInt(7,
+                    moto.getEngine().getCylinderCount());
+
+            pstmt.executeUpdate();
+
+            System.out.println(
+                    "Motorcycle added to database.");
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public List<SportMotorcycle> getMotorcycles() {
+
+        List<SportMotorcycle> list = new ArrayList<>();
+
+        String sql = "SELECT * FROM motorcycles";
+
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+
+                Engine engine = new Engine(
+                        rs.getInt("engine_size"),
+                        rs.getInt("cylinder_count")
+                );
+
+                SportMotorcycle moto =
+                        new SportMotorcycle(
+                                rs.getString("brand"),
+                                rs.getString("model"),
+                                rs.getInt("engine_size"),
+                                rs.getInt("top_speed"),
+                                rs.getString("manufacturer"),
+                                rs.getString("type"),
+                                engine
+                        );
+
+                moto.setId(rs.getInt("id"));
+
+                list.add(moto);
+            }
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    @Override
+    public void updateMotorcycle(
+            int id,
+            SportMotorcycle moto) {
+
+        String sql =
+                "UPDATE motorcycles SET " +
+                "brand=?, " +
+                "model=?, " +
+                "engine_size=?, " +
+                "top_speed=?, " +
+                "manufacturer=?, " +
+                "type=?, " +
+                "cylinder_count=? " +
+                "WHERE id=?";
+
+        try (PreparedStatement pstmt =
+                     conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, moto.getBrand());
+            pstmt.setString(2, moto.getModel());
+            pstmt.setInt(3,
+                    moto.getEngine().getEngineSize());
+            pstmt.setInt(4, moto.getTopSpeed());
+            pstmt.setString(5, moto.getManufacturer());
+            pstmt.setString(6, moto.getType());
+            pstmt.setInt(7,
+                    moto.getEngine().getCylinderCount());
+
+            pstmt.setInt(8, id);
+
+            pstmt.executeUpdate();
+
+            System.out.println(
+                    "Motorcycle updated.");
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void deleteMotorcycle(int id) {
+
+        String sql =
+                "DELETE FROM motorcycles WHERE id=?";
+
+        try (PreparedStatement pstmt =
+                     conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, id);
+
+            pstmt.executeUpdate();
+
+            System.out.println(
+                    "Motorcycle deleted.");
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
         }
     }
 }
@@ -226,6 +420,7 @@ public class MotorcycleDB implements DatabaseOperations {
 
 public class SportMotorcycle extends Motorcycle {
 
+    private int id;
     private String manufacturer;
     private String type;
     private Engine engine; // Composition
@@ -240,6 +435,14 @@ public class SportMotorcycle extends Motorcycle {
     }
 
     // Getters and Setters
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
     public String getManufacturer() { return manufacturer; }
     public void setManufacturer(String manufacturer) { this.manufacturer = manufacturer; }
 
@@ -257,7 +460,8 @@ public class SportMotorcycle extends Motorcycle {
 
     @Override
     public String toString() {
-        return "Motorcycle: " + getBrand() + " " + getModel() +
+        return "ID: " + id +
+                "\nMotorcycle: " + getBrand() + " " + getModel() +
                "\nEngine: " + engine +
                "\nTop Speed: " + getTopSpeed() + " mph" +
                "\nManufacturer: " + manufacturer +
